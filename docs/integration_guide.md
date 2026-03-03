@@ -73,8 +73,7 @@ contract MyAgent {
 ## Python Integration
 
 ```python
-from agent import get_vault_state, open_position, close_position, get_open_positions
-from config import VAULT_ADDRESS, USDC_ADDRESS
+from vault import get_vault_state, open_gmx_position, close_gmx_position, get_open_positions
 
 PRIVATE_KEY = "0x..."  # from .env
 
@@ -83,16 +82,16 @@ state = get_vault_state("0xYourAddress")
 print(f"Idle: ${state['idle_usdc']:.2f} | Positions: {state['position_count']}")
 
 # Open a position
-result = open_position(PRIVATE_KEY)
+result = open_gmx_position(PRIVATE_KEY)
 print(f"Opened: {result['tx_hash']}")
 
 # Query open positions
 positions = get_open_positions("0xYourAddress")
 for pos in positions:
-    print(f"  #{pos['id']}: ${pos['collateral_usd']} collateral, ${pos['size_usd']} size")
+    print(f"  #{pos['position_id']}: ${pos['collateral_usd']} collateral, ${pos['size_usd']} size")
 
 # Close a position
-result = close_position(PRIVATE_KEY, position_id=0)
+result = close_gmx_position(PRIVATE_KEY, position_id=0)
 print(f"Closed: {result['tx_hash']}")
 ```
 
@@ -163,19 +162,21 @@ Capital flows from vault → GMX automatically. No pre-funding of GMX wallet req
 ```python
 # See umip-agent-template/agent.py for complete implementation
 if gmx_rate > RATE_THRESHOLD and not has_positions:
-    open_position(private_key)
+    open_gmx_position(private_key)
 elif gmx_rate < RATE_THRESHOLD and has_positions:
-    close_position(private_key, position_id=0)
+    close_gmx_position(private_key, position_id=0)
 ```
 
 ### Pattern 2: Cross-Venue Hedging (delta-neutral)
 Long on GMX + short on gTrade simultaneously from same collateral pool.
 
+> **Note:** gTrade adapter is mainnet-only. This pattern is illustrative — see the Solidity integration section for the contract-level implementation. Not available on Sepolia testnet.
+
 ```python
 # Without UMIP: need GMX_USDC wallet AND GNS_USDC wallet → capital fragmented
 # With UMIP: one vault → open on GMX, open on gTrade, both from idle collateral
-long_id  = vault.openPosition(Platform.GMX, collateral, size, MAX_PRICE)
-short_id = vault.openPosition(Platform.GainsTrade, collateral, size, 0)
+# long_id  = vault.openPosition(Platform.GMX, collateral, size, MAX_PRICE)
+# short_id = vault.openPosition(Platform.GainsTrade, collateral, size, 0)
 ```
 
 ### Pattern 3: Dynamic Rebalancing
