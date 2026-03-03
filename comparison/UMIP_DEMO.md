@@ -194,6 +194,8 @@ if state["can_open_gmx"] and rate_above_threshold:
 
 ## Log Files
 
+> These files are generated locally when you run the agents — they are gitignored and not included in the repository. To see the results without running the agents, visit the [live dashboard](https://umip-dashboard.vercel.app).
+
 | File | Contents |
 |---|---|
 | `.tmp/agent_v1_log.jsonl` | V1 live JSONL log (FRAGMENTATION events accumulating) |
