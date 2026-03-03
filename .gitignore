@@ -1,0 +1,45 @@
+# WAT Framework - Git Ignore
+
+# Temporary files
+.tmp/*
+!.tmp/.gitkeep
+
+# Environment variables and secrets
+.env
+.env.local
+
+# Google OAuth credentials
+credentials.json
+token.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+.vercel
+
+# Contracts
+contracts/.env
+
+# Internal
+CLAUDE.md
