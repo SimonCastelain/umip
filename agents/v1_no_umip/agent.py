@@ -10,14 +10,9 @@ Decision loop:
   5. Log every decision — especially FRAGMENTATION events when capital
      is locked on the wrong platform
 
-The fragmentation problem surfaces naturally:
-  - gTrade is almost always cheaper (0.003%/day vs GMX's 0.1%+/day)
-  - But the GMX adapter holds all capital (SG USDC), gTrade wallet has 0 GNS_USDC
-  - Agent WANTS to trade on gTrade but CANNOT → logs opportunity cost daily
-
-This log becomes the evidence for the UMIP pitch:
-  "In 4 weeks of running V1, we missed $X in fees due to fragmentation.
-   V2 with UMIP eliminates this by letting capital flow to the best venue instantly."
+The fragmentation constraint surfaces naturally: the GMX adapter holds all capital
+(SG USDC), so the agent cannot act on gTrade signals even when gTrade fees are lower.
+Every missed opportunity is logged as a FRAGMENTATION event with the opportunity cost.
 
 Usage:
   python3 agent.py              — run one cycle and exit
