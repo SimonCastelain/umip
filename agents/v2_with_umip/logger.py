@@ -2,16 +2,13 @@
 """
 logger.py — Structured event logging for Agent V2 (With UMIP).
 
-V2 events (compared to V1):
-  RATE_SNAPSHOT  — identical to V1
-  OPPORTUNITY    — identical to V1
-  VAULT_HEALTH   — vault state (idle/allocated/total) — replaces V1 HEALTH
-  VAULT_OPEN     — position opened via vault — replaces V1 FRAGMENTATION
-  ACTION         — same as V1
-  ERROR          — same as V1
-
-Key difference: V2 NEVER emits FRAGMENTATION events.
-The vault always routes to wherever capital is allocated.
+Events:
+  RATE_SNAPSHOT  — periodic rate captures
+  OPPORTUNITY    — rate arbitrage signal detected
+  VAULT_HEALTH   — vault state (idle/allocated/total)
+  VAULT_OPEN     — position opened via vault
+  ACTION         — trade executed
+  ERROR          — error context
 """
 
 import json
@@ -75,7 +72,7 @@ def log_opportunity(rates: list[dict], preferred_platform: str, reason: str) -> 
 
 
 def log_vault_health(vault_state: dict) -> None:
-    """Log vault state — replaces V1 HEALTH. Never shows fragmentation_risk=True."""
+    """Log vault state snapshot."""
     _write({
         "event":             "VAULT_HEALTH",
         "idle_usdc":         round(vault_state.get("idle_usdc",          0), 2),
@@ -83,18 +80,13 @@ def log_vault_health(vault_state: dict) -> None:
         "allocated_gtrade":  round(vault_state.get("allocated_gt_usdc",  0), 2),
         "total_usdc":        round(vault_state.get("total_usdc",         0), 2),
         "position_count":    vault_state.get("position_count", 0),
-        "fragmentation_risk": False,   # V2: never fragments
+        "fragmentation_risk": False,
         "vault":             "UMIPVault",
     })
 
 
 def log_vault_open(result: dict, rates: list[dict]) -> None:
-    """
-    Log a successful vault position open — the V2 equivalent of V1's FRAGMENTATION event.
-
-    V1: "Wanted gTrade but stuck on GMX — FRAGMENTATION"
-    V2: "Opened on GMX via vault — no fragmentation"
-    """
+    """Log a successful vault position open."""
     gmx_eth = next((r for r in rates if r["platform"] == "GMX"    and r["market"] == "ETH/USD"), None)
     gt_eth  = next((r for r in rates if r["platform"] == "gTrade" and r["market"] == "ETH/USD"), None)
 
@@ -114,7 +106,7 @@ def log_vault_open(result: dict, rates: list[dict]) -> None:
         "tx_hash":        result.get("tx_hash", ""),
         "collateral_usd": result.get("collateral_usd", 0),
         "size_usd":       result.get("size_usd", 0),
-        "fragmentation":  False,      # KEY DIFFERENCE FROM V1
+        "fragmentation":  False,
         "note":           note,
     })
 
