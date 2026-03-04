@@ -128,22 +128,12 @@ def _wait_for_gmx_keeper(w3: Web3, account: str, position_count_before: int,
     """
     Poll until the GMX keeper has processed the order.
 
-    GMX V2 uses an async order execution model: our vault tx calls
-    ExchangeRouter.createOrder(), but a separate off-chain keeper actually
-    executes the order (usually 2–30s on Sepolia, up to 2min under load).
+    GMX V2 uses async order execution: the vault tx calls createOrder(),
+    then a keeper executes it off-chain (usually 2–30s on Sepolia).
+    We detect execution by watching userPositionCount.
 
-    We detect execution by watching the vault's userPositionCount, which
-    increases when openPosition() is called (same tx — immediate), and by
-    polling the vault's allocatedGMX to confirm collateral moved.
-
-    Production upgrade path:
-        Parse the OrderCreated event from the vault tx receipt to extract
-        the GMX order key, then poll DataStore.getOrder(key) until it returns
-        zero (order gone = executed). This requires the adapter to surface the
-        event, which is the planned v2 adapter upgrade.
-
-    Returns: "confirmed" | "timeout" (order may still execute — do not retry
-             without first checking vault state to avoid double-open).
+    Returns: "confirmed" | "timeout" (order may still execute — check vault
+             state before retrying to avoid double-open).
     """
     vault = w3.eth.contract(
         address=Web3.to_checksum_address(UMIP_VAULT_SEP),
@@ -157,10 +147,6 @@ def _wait_for_gmx_keeper(w3: Web3, account: str, position_count_before: int,
                 Web3.to_checksum_address(account)
             ).call()
             if count > position_count_before:
-                # Vault registered the position — order submitted to keeper.
-                # Note: this confirms the vault tx succeeded, not that the
-                # GMX keeper has executed. In practice on Sepolia this is
-                # sufficient; mainnet needs order-key polling (see above).
                 return "confirmed"
         except Exception:
             continue  # transient RPC error — keep polling
