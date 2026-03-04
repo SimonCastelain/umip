@@ -243,7 +243,6 @@ def decide(rates: dict, vault_state: dict, open_positions: list) -> tuple[str, s
             return "close_all", "Rate dropped below threshold — closing"
         return "skip", f"Rate {gmx_rate*100:.4f}%/day below threshold"
 
-    # Determine optimal venue (V2 vault routes automatically — zero fragmentation)
     if ratio >= PREFER_GTRADE_IF:
         venue = "gTrade (via vault)"
         reason = f"gTrade is {ratio:.1f}x cheaper than GMX"
@@ -282,7 +281,7 @@ def run_cycle(private_key: str) -> None:
     print(f"  Idle:      ${state['idle_usdc']:.2f}")
     print(f"  GMX alloc: ${state['allocated_gmx_usdc']:.2f}")
     print(f"  Positions: {len(positions)} open")
-    print(f"  Fragmentation: False (UMIP vault — always False)")
+    print(f"  Fragmentation: False")
 
     print("\n[3/4] Deciding...")
     action, reason = decide(rates, state, positions)
