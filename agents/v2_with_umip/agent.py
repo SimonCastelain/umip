@@ -2,21 +2,15 @@
 """
 agent.py — Agent V2 (With UMIP): Funding rate arbitrage via UMIPVault on Sepolia.
 
-Decision loop (same as V1 but architecture is different):
-  1. Fetch live rates (GMX mainnet, gTrade mainnet) as signal — same as V1
+Decision loop:
+  1. Fetch live rates (GMX mainnet, gTrade mainnet) as signal
   2. Query UMIPVault state (unified collateral pool)
-  3. Decide optimal platform — same logic as V1
+  3. Decide optimal platform
   4. Execute via vault.openPosition() — no fragmentation possible
-  5. Log VAULT_OPEN event (never FRAGMENTATION — that's the whole point)
+  5. Log VAULT_OPEN event
 
-V1 vs V2 comparison:
-  V1: Capital split across wallets → FRAGMENTATION events when capital on wrong platform
-  V2: Capital in UMIPVault → vault routes to GMX, always succeeds, zero fragmentation
-
-Testnet note:
-  On testnet, V2 only routes to GMX (gTrade requires GNS_USDC, vault holds SG_USDC).
-  On mainnet, vault would route to gTrade (17x cheaper rate) automatically.
-  This limitation is logged in every VAULT_OPEN event as a note.
+On testnet, routes to GMX only (gTrade requires GNS_USDC, vault holds SG_USDC).
+On mainnet, vault routes to gTrade automatically when it offers a better rate.
 
 Usage:
   python3 agent.py              — run one cycle and exit
@@ -32,14 +26,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-# V2 imports vault.py instead of positions.py
 from vault  import get_vault_state, get_open_positions, open_gmx_position, close_gmx_position
 from logger import (
     log_rate_snapshot, log_opportunity, log_vault_health,
     log_vault_open, log_action, log_error, print_recent_log
 )
 
-# V2 reuses the same rate-fetching module as V1
 sys.path.insert(0, str(Path(__file__).parent.parent / "v1_no_umip"))
 from rates import fetch_rates
 
@@ -55,10 +47,8 @@ UMIP_VAULT       = "0x555f5Ea52732aDeF6D92DB42274be8144b8A3cf4"
 
 def decide(rates: list[dict], vault_state: dict) -> dict:
     """
-    Same decision logic as V1, but using vault_state instead of separate wallet balances.
-
-    V1 returns FRAGMENTATION when optimal platform lacks capital.
-    V2 never returns FRAGMENTATION — vault routes internally.
+    Decide trading action based on rates and vault state.
+    Returns action dict with action, platform, reason.
     """
     gmx_eth = next((r for r in rates if r["platform"] == "GMX"    and r["market"] == "ETH/USD"), None)
     gt_eth  = next((r for r in rates if r["platform"] == "gTrade" and r["market"] == "ETH/USD"), None)
@@ -100,7 +90,6 @@ def decide(rates: list[dict], vault_state: dict) -> dict:
         can_open = vault_state["can_open_gmx"]
 
         if can_open:
-            # V2: vault routes to available platform — no fragmentation check needed
             executed_platform = "GMX"   # testnet: only GMX available in vault
             return {
                 "action":           "open",
@@ -199,7 +188,7 @@ def run_cycle(private_key: str, force_close: bool = False):
         print(f"  Vault GMX alloc:${state['allocated_gmx_usdc']:.2f}")
         print(f"  Vault total:    ${state['total_usdc']:.2f}")
         print(f"  Open positions: {state['position_count']}")
-        print(f"  Fragmentation:  {state['fragmentation_risk']} (V2: always False)")
+        print(f"  Fragmentation:  {state['fragmentation_risk']}")
     except Exception as e:
         log_error("get_vault_state", str(e))
         print(f"  ERROR querying vault: {e}")
